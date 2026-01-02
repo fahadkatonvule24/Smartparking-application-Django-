@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Clients - Smart Parking{% endblock page_title %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+        <p class="text-uppercase text-secondary mb-1">People &amp; vehicles</p>
+        <h1 class="hero-title">Client registry</h1>
+        <p class="text-secondary mb-0">Add, edit, or remove drivers manually.</p>
+    </div>
+    <button class="btn btn-primary primary-gradient"
+            data-bs-toggle="modal"
+            data-bs-target="#clientModal">
+        + Add client
+    </button>
+</div>
+
+<div class="glass-card p-4">
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Client</th>
+                <th>Contact</th>
+                <th>Plate</th>
+                <th>Car type</th>
+                <th>Dimension</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for entry in clients %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ entry.full_name }}</td>
+                    <td>{{ entry.contact }}</td>
+                    <td class="fw-bold">{{ entry.plate_number }}</td>
+                    <td>{{ entry.get_car_type_display|default:'N/A' }}</td>
+                    <td>{{ entry.dimension }} cm</td>
+                    <td class="text-end">
+                        <a href="{% url 'edit_client_page' entry.id %}"
+                           class="btn btn-sm btn-outline-info"
+                           aria-label="Edit client">
+                            <span aria-hidden="true">&#9998;</span>
+                        </a>
+                        <form action="{% url 'delete_client_page' entry.id %}" method="POST" class="d-inline-block">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger"
+                                    aria-label="Delete client">
+                                <span aria-hidden="true">&#128465;</span>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-secondary py-4">
+                        No clients yet. Add your first driver to begin tracking reservations.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="clientModal" tabindex="-1" aria-labelledby="clientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="clientModalLabel">Add new client</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'client_page' %}">
+                    {% csrf_token %}
+                    {{ form.non_field_errors }}
+                    <div class="row g-3">
+                        {% for field in form %}
+                            <div class="col-md-6">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <div class="small text-danger">{{ field.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="d-flex justify-content-end gap-3 mt-4">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary primary-gradient">Save client</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalElement = document.getElementById('clientModal');
+            const triggers = document.querySelectorAll('[data-bs-target="#clientModal"], [data-client-modal-trigger]');
+            if (!modalElement) return;
+
+            const useBootstrap = typeof bootstrap !== 'undefined' && bootstrap.Modal;
+            let backdropEl = null;
+
+            const showFallback = () => {
+                modalElement.classList.add('show');
+                modalElement.style.display = 'block';
+                modalElement.removeAttribute('aria-hidden');
+                modalElement.setAttribute('aria-modal', 'true');
+                modalElement.setAttribute('role', 'dialog');
+
+                backdropEl = document.createElement('div');
+                backdropEl.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdropEl);
+            };
+
+            const hideFallback = () => {
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+
+                if (backdropEl && backdropEl.parentNode) {
+                    backdropEl.parentNode.removeChild(backdropEl);
+                    backdropEl = null;
+                }
+            };
+
+            const showModal = () => {
+                if (useBootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                } else {
+                    showFallback();
+                }
+            };
+
+            triggers.forEach((btn) => {
+                btn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    showModal();
+                });
+            });
+
+            modalElement.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    if (!useBootstrap) hideFallback();
+                });
+            });
+
+            modalElement.addEventListener('click', (event) => {
+                if (event.target === modalElement && !useBootstrap) hideFallback();
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !useBootstrap) hideFallback();
+            });
+
+            {% if show_client_modal %}
+            showModal();
+            {% endif %}
+        });
+    </script>
+{% endblock extra_js %}

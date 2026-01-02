@@ -1,0 +1,7 @@
+Django==4.2.20
+crispy-bootstrap5==2025.6
+django-crispy-forms==2.5
+django-environ==0.11.2
+whitenoise==6.7.0
+sentry-sdk==2.19.0
+django-debug-toolbar==4.4.6

@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Parking slots{% endblock page_title %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <p class="text-uppercase text-secondary mb-1">Inventory</p>
+        <h1 class="hero-title">Parking slots</h1>
+    </div>
+    <button class="btn btn-primary primary-gradient"
+            data-bs-toggle="modal"
+            data-bs-target="#slotModal">
+        + Add slot
+    </button>
+</div>
+
+<div class="glass-card p-4">
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0">
+            <thead>
+            <tr>
+                <th>Label</th>
+                <th>Lot</th>
+                <th>Floor</th>
+                <th>Type</th>
+                <th>Max dimension</th>
+                <th>Status</th>
+                <th>Current booking</th>
+                <th>Duration</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for slot in spaces %}
+                <tr>
+                    <td>{{ slot.label }}</td>
+                    <td>{% if slot.parking_lot %}{{ slot.parking_lot }}{% else %}-{% endif %}</td>
+                    <td>{{ slot.floor_number }}</td>
+                    <td>{{ slot.get_space_type_display }}</td>
+                    <td>{{ slot.dimension_limit }} cm</td>
+                    <td>
+                        {% if slot.is_active and not slot.is_occupied %}
+                            <span class="badge bg-success">Available</span>
+                        {% elif slot.is_occupied %}
+                            <span class="badge bg-danger">Occupied</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Offline</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if slot.current_booking %}
+                            <div class="small">
+                                <strong>{{ slot.current_booking.client.full_name }}</strong><br>
+                                Until {{ slot.current_booking.end_time|date:"M d, H:i" }}
+                            </div>
+                        {% else %}
+                            <span class="text-secondary">No active booking</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if slot.current_booking %}
+                            {{ slot.current_booking.duration_hours|floatformat:1 }} h
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-info"
+                                type="button"
+                                data-slot-target="#slotDetailModal-{{ slot.id }}">
+                            View
+                        </button>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-secondary py-4">No slots configured yet.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="slotModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Add parking slot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'parking_space_page' %}">
+                    {% csrf_token %}
+                    {{ form.non_field_errors }}
+                    <div class="row g-3">
+                        {% for field in form %}
+                            <div class="col-md-6">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <div class="small text-danger">{{ field.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="d-flex justify-content-end gap-3 mt-4">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary primary-gradient">Save slot</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for slot in spaces %}
+    <div class="modal fade" id="slotDetailModal-{{ slot.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content glass-card">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Slot {{ slot.label }} details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <p class="text-secondary mb-1">Lot</p>
+                            <p class="mb-0">{% if slot.parking_lot %}{{ slot.parking_lot }}{% else %}Unassigned{% endif %}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-secondary mb-1">Status</p>
+                            <p class="mb-0">
+                                {% if slot.is_occupied %}
+                                    Occupied
+                                {% elif slot.is_active %}
+                                    Available
+                                {% else %}
+                                    Offline
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <h6 class="text-secondary text-uppercase small">Active booking</h6>
+                        {% if slot.current_booking %}
+                            <p class="mb-1"><strong>{{ slot.current_booking.client.full_name }}</strong></p>
+                            <p class="mb-0">From {{ slot.current_booking.start_time|date:"M d, H:i" }} to {{ slot.current_booking.end_time|date:"M d, H:i" }}</p>
+                        {% else %}
+                            <p class="text-secondary mb-0">No active booking.</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6 class="text-secondary text-uppercase small">Recent reservations</h6>
+                        <ul class="list-unstyled mb-0">
+                            {% for entry in slot.recent_reservations %}
+                                <li class="mb-2">
+                                    <strong>{% if entry.client %}{{ entry.client.full_name }}{% else %}Unknown client{% endif %}</strong>
+                                    <br>
+                                    {{ entry.start_time|date:"M d, H:i" }} to {{ entry.end_time|date:"M d, H:i" }}
+                                    ({{ entry.get_reservation_status_display }})
+                                </li>
+                            {% empty %}
+                                <li class="text-secondary">No reservations yet.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+{% endblock content %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalElement = document.getElementById('slotModal');
+            const triggers = document.querySelectorAll('[data-bs-target="#slotModal"], [data-slot-modal-trigger]');
+            if (!modalElement) return;
+
+            const useBootstrap = typeof bootstrap !== 'undefined' && bootstrap.Modal;
+            let backdropEl = null;
+
+            const showFallback = () => {
+                modalElement.classList.add('show');
+                modalElement.style.display = 'block';
+                modalElement.removeAttribute('aria-hidden');
+                modalElement.setAttribute('aria-modal', 'true');
+                modalElement.setAttribute('role', 'dialog');
+
+                backdropEl = document.createElement('div');
+                backdropEl.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdropEl);
+            };
+
+            const hideFallback = () => {
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+
+                if (backdropEl && backdropEl.parentNode) {
+                    backdropEl.parentNode.removeChild(backdropEl);
+                    backdropEl = null;
+                }
+            };
+
+            const showModal = () => {
+                if (useBootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                } else {
+                    showFallback();
+                }
+            };
+
+            triggers.forEach((btn) => {
+                btn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    showModal();
+                });
+            });
+
+            modalElement.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    if (!useBootstrap) hideFallback();
+                });
+            });
+
+            modalElement.addEventListener('click', (event) => {
+                if (event.target === modalElement && !useBootstrap) hideFallback();
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !useBootstrap) hideFallback();
+            });
+
+            {% if show_slot_modal %}
+            showModal();
+            {% endif %}
+        });
+
+        // Ensure slot detail modals open even if data attributes are missed by Bootstrap
+        document.addEventListener('DOMContentLoaded', function () {
+            const useBootstrap = typeof bootstrap !== 'undefined' && bootstrap.Modal;
+            const detailButtons = document.querySelectorAll('[data-slot-target]');
+
+            detailButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const targetSelector = btn.getAttribute('data-slot-target');
+                    if (!targetSelector) return;
+                    const modalEl = document.querySelector(targetSelector);
+                    if (!modalEl) return;
+
+                    if (useBootstrap) {
+                        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                    } else {
+                        // Simple fallback to show modal without Bootstrap JS
+                        modalEl.classList.add('show');
+                        modalEl.style.display = 'block';
+                        modalEl.removeAttribute('aria-hidden');
+                        modalEl.setAttribute('aria-modal', 'true');
+                        modalEl.setAttribute('role', 'dialog');
+                        const backdrop = document.createElement('div');
+                        backdrop.className = 'modal-backdrop fade show';
+                        document.body.appendChild(backdrop);
+                        modalEl.querySelectorAll('[data-bs-dismiss=\"modal\"]').forEach((closeBtn) => {
+                            closeBtn.addEventListener('click', () => {
+                                modalEl.classList.remove('show');
+                                modalEl.style.display = 'none';
+                                modalEl.setAttribute('aria-hidden', 'true');
+                                modalEl.removeAttribute('aria-modal');
+                                if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+                            });
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock extra_js %}

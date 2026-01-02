@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+{% load  static %}
+{% load crispy_forms_tags %}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Smart Parking. com">
+        <link rel="stylesheet" href="{% static 'bloger/static/css/bootstrap.min.css' %}">
+    </head>
+    <body>
+        <header>
+        <title> Smart Parking.com</title>
+        <div class="navlinks">
+            <nav>
+                <a href="{% url 'client_page' %}">client</a>
+                <a href="{% url 'parking_page' %}">Parking</a>
+                <a href="{% url 'parking_lot_page' %}">Parking lot</a>
+                <a href="{% url 'parking_space_page' %}">Parking Space</a>
+                <a href="{% url 'reservation_page' %}">reservation</a>
+                <a href="{% url 'login_page' %}">Login</a>
+            </nav>
+        </div>
+        </header>
+
+        <main>
+            <h1> SMART PARKING SYSTEM </h1>
+            <h2>MAKING PARKING EASY</h2>
+            <div class="content">
+                <p> Welcome to the Smart parking system  </p>
+                <p>This Smart parking system operates on the ground areas of Northern Towers and the Southern Towers. The system gives diferrent aultanatives or options to the user giving an intuitive navigation  </p>
+                <img src="images/building.jpg" alt="Building">
+            </div>
+            
+
+        </main>
+    </body>
+</html>

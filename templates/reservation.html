@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Reservations{% endblock page_title %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <p class="text-uppercase text-secondary mb-1">Reservation control</p>
+        <h1 class="hero-title mb-0">Live bookings</h1>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="glass-card px-4 py-2 text-center">
+            <span class="small text-secondary d-block">Free slots</span>
+            <strong class="fs-4">{{ available_slots }}</strong>
+        </div>
+        <button class="btn btn-primary primary-gradient"
+                data-bs-toggle="modal"
+                data-bs-target="#reservationModal">
+            + Add reservation
+        </button>
+    </div>
+</div>
+
+<div class="glass-card p-4">
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Client</th>
+                <th>Slot</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>Status</th>
+                <th>Cost</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for entry in reservations %}
+                <tr>
+                    <td>{{ entry.reservation_number }}</td>
+                    <td>{% if entry.client %}{{ entry.client.full_name }}{% else %}&mdash;{% endif %}</td>
+                    <td>{% if entry.parking_slot %}{{ entry.parking_slot.label }}{% else %}&mdash;{% endif %}</td>
+                    <td>{{ entry.start_time|date:"M d, H:i" }}</td>
+                    <td>{{ entry.end_time|date:"M d, H:i" }}</td>
+                    <td>
+                        <span class="badge bg-{% if entry.reservation_status == 'CONFIRMED' %}success{% elif entry.reservation_status == 'PENDING' %}warning text-dark{% elif entry.reservation_status == 'CANCELLED' %}danger{% else %}secondary{% endif %}">
+                            {{ entry.get_reservation_status_display }}
+                        </span>
+                    </td>
+                    <td>${{ entry.total_cost|floatformat:2 }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'reservation_edit_page' entry.id %}"
+                           class="btn btn-sm btn-outline-info"
+                           aria-label="Edit reservation">
+                            <span aria-hidden="true">&#9998;</span>
+                        </a>
+                        <form action="{% url 'reservation_delete_page' entry.id %}" method="POST" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger"
+                                    aria-label="Delete reservation">
+                                <span aria-hidden="true">&#128465;</span>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-secondary">No reservations yet.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="modal fade" id="reservationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Create reservation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'reservation_page' %}">
+                    {% csrf_token %}
+                    {{ form.non_field_errors }}
+                    <div class="row g-3">
+                        {% for field in form %}
+                            <div class="col-md-6">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <div class="small text-danger">{{ field.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="d-flex justify-content-end gap-3 mt-4">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary primary-gradient">Save reservation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modalElement = document.getElementById('reservationModal');
+            const triggers = document.querySelectorAll('[data-bs-target="#reservationModal"]');
+            if (!modalElement) return;
+
+            const useBootstrap = typeof bootstrap !== 'undefined' && bootstrap.Modal;
+            let backdropEl = null;
+
+            const showFallback = () => {
+                modalElement.classList.add('show');
+                modalElement.style.display = 'block';
+                modalElement.removeAttribute('aria-hidden');
+                modalElement.setAttribute('aria-modal', 'true');
+                modalElement.setAttribute('role', 'dialog');
+
+                backdropEl = document.createElement('div');
+                backdropEl.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdropEl);
+            };
+
+            const hideFallback = () => {
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+
+                if (backdropEl && backdropEl.parentNode) {
+                    backdropEl.parentNode.removeChild(backdropEl);
+                    backdropEl = null;
+                }
+            };
+
+            const showModal = () => {
+                if (useBootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                } else {
+                    showFallback();
+                }
+            };
+
+            triggers.forEach((btn) => {
+                btn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    showModal();
+                });
+            });
+
+            modalElement.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    if (!useBootstrap) hideFallback();
+                });
+            });
+
+            modalElement.addEventListener('click', (event) => {
+                if (event.target === modalElement && !useBootstrap) hideFallback();
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !useBootstrap) hideFallback();
+            });
+
+            {% if show_reservation_modal %}
+            showModal();
+            {% endif %}
+        });
+    </script>
+{% endblock extra_js %}

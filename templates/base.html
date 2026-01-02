@@ -1,0 +1,220 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block page_title %}Smart Parking{% endblock page_title %}</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <style>
+        body {
+            min-height: 100vh;
+            background: linear-gradient(130deg, #050505, #141b29);
+            color: #f7f7f7;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .primary-gradient {
+            background: linear-gradient(120deg, #00d2ff, #3a7bd5);
+            border: none;
+            color: #041c32;
+        }
+        .glass-card {
+            background: rgba(10, 15, 23, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+          
+        }
+        .modal-backdrop.show {
+            opacity: .75;
+        }
+        .hero-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+        }
+        .flash-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            place-items: center;
+            background: rgba(2, 8, 20, 0.72);
+            z-index: 2000;
+            padding: 2rem;
+        }
+        .flash-overlay.show {
+            display: grid;
+        }
+        .flash-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        .flash-card {
+            width: min(420px, 90vw);
+            background: rgba(11, 18, 35, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 1.75rem 1.5rem;
+            box-shadow: 0 30px 60px rgba(2, 6, 23, 0.55);
+            animation: flash-pop 0.4s ease;
+        }
+        .flash-card.success {
+            border-color: rgba(0, 255, 163, 0.6);
+        }
+        .flash-card.error {
+            border-color: rgba(255, 84, 84, 0.6);
+        }
+        .flash-card.info {
+            border-color: rgba(0, 160, 255, 0.6);
+        }
+        .flash-card .flash-title {
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.15em;
+            color: rgba(255, 255, 255, 0.65);
+            margin-bottom: 0.3rem;
+        }
+        .flash-card .flash-text {
+            font-size: 1.05rem;
+            margin: 0;
+        }
+        .flash-close {
+            margin-top: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        @keyframes flash-pop {
+            from {
+                opacity: 0;
+                transform: translateY(15px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock extra_css %}
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-body-tertiary shadow-sm sticky-top glass-card">
+    <div class="container-fluid">
+        <a class="navbar-brand text-uppercase" href="{% url 'index_page' %}">Smart Parking</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard_page' %}">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'client_page' %}">Clients</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'reservation_page' %}">Reservations</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'parking_space_page' %}">Slots</a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center gap-3">
+                {% if user.is_authenticated %}
+                    <span class="small text-uppercase">Hello, {{ user.username }}</span>
+                    <a href="{% url 'logout_page' %}" class="btn btn-outline-light btn-sm">Logout</a>
+                {% else %}
+                    <a class="btn btn-primary primary-gradient btn-sm"
+                       href="{% url 'login_page' %}"
+                       data-bs-toggle="modal"
+                       data-bs-target="#loginModal"
+                       role="button">
+                        Login
+                    </a>
+                    <a href="{% url 'sign_up_page' %}" class="btn btn-outline-light btn-sm">Sign up</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-5">
+    {% block content %}{% endblock content %}
+</main>
+
+<div id="flashOverlay" class="flash-overlay" data-has-messages="{% if messages %}true{% else %}false{% endif %}">
+    {% if messages %}
+        <div class="flash-stack text-center">
+            {% for message in messages %}
+                {% with tag=message.tags|default:"info" %}
+                <div class="flash-card {{ tag }}">
+                    <p class="flash-title">{{ tag|title }}</p>
+                    <p class="flash-text">{{ message }}</p>
+                </div>
+                {% endwith %}
+            {% endfor %}
+            <button class="btn btn-outline-light flash-close" type="button" data-close-flash>Close</button>
+        </div>
+    {% endif %}
+</div>
+
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="loginModalLabel">Quick Login</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'login_page' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    {{ global_login_form.non_field_errors }}
+                    {% for field in global_login_form %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="small text-danger">{{ field.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary primary-gradient">Continue</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script>
+    (function () {
+        const overlay = document.getElementById('flashOverlay');
+        if (!overlay) return;
+
+        const hasMessages = overlay.dataset.hasMessages === 'true';
+        const closeOverlay = () => {
+            overlay.classList.remove('show');
+        };
+
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay || event.target.closest('[data-close-flash]')) {
+                closeOverlay();
+            }
+        });
+
+        if (hasMessages) {
+            overlay.classList.add('show');
+            setTimeout(() => {
+                closeOverlay();
+            }, 4200);
+        }
+    })();
+</script>
+{% block extra_js %}{% endblock extra_js %}
+</body>
+</html>

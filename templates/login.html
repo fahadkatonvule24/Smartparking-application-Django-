@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Login{% endblock page_title %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="glass-card p-5">
+            <h2 class="mb-4 text-center">Sign in</h2>
+            <form method="POST" action="{% url 'login_page' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.GET.next }}">
+                {{ form.non_field_errors }}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="small text-danger">{{ field.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary primary-gradient">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

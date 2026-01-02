@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="glass-card p-5 text-center">
+    <p class="text-uppercase text-info mb-2">Smart Parking Suite</p>
+    <h1 class="hero-title mb-3">Making every slot count</h1>
+    <p class="lead text-secondary mb-4">
+        Manage customers, assign bays, and track reservations from a single dashboard.
+    </p>
+    <div class="d-flex justify-content-center gap-3">
+        <a href="{% url 'dashboard_page' %}" class="btn btn-primary primary-gradient">Open dashboard</a>
+        <a href="{% url 'reservation_page' %}" class="btn btn-outline-light">Manage reservations</a>
+    </div>
+</section>
+{% endblock content %}
+
+
